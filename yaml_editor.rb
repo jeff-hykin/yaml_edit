@@ -19,17 +19,33 @@ end
 
 module Psych
     module Nodes
-        class Document
-            def to_s
-                output = "[Document]".green() +" implicit: #{self.implicit.inspect}, implicit_end: #{self.implicit_end.inspect}, version: #{self.version.inspect}, directives: #{self.tag_directives.inspect}\n".blue
-                for each in self.children
-                    if each.respond_to?(:to_s)
-                        output += indent(each.to_s)+"\n"
-                    else
-                        output += indent(each.inspect)+"\n"
+        module Common
+            def style_to_s
+                style_enums = [ :BLOCK, :FLOW, :ANY, :DOUBLE_QUOTED, :FOLDED, :LITERAL, :PLAIN, :SINGLE_QUOTED, ]
+                for each_enum in style_enums
+                    if self.class.const_defined?(each_enum)
+                        if self.style == self.class.const_get(each_enum)
+                            return each_enum
+                        end
                     end
                 end
+                return self.style
+            end
+        end
+        
+        class Document
+            def to_s
+                self.inspect
+            end
+            def inspect
+                output = "[Document]".green() +" implicit: #{self.implicit.inspect}, implicit_end: #{self.implicit_end.inspect}, version: #{self.version.inspect}, directives: #{self.tag_directives.inspect}\n".blue
+                for each in self.children
+                    output += indent(each.inspect)+"\n"
+                end
                 return output
+            end
+            def content
+                return self.children[0]
             end
             def to_yaml
                 new_stream = Psych::Nodes::Stream.new
@@ -39,8 +55,9 @@ module Psych
         end
         
         class Mapping
-            def to_s
-                output = "[Mapping]".green() + " anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, implicit: #{self.implicit.inspect}, style: #{self.style.inspect}\n".blue
+            include Common
+            def inspect
+                output = "[Mapping]".green() + " anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, implicit: #{self.implicit.inspect}, style: #{self.style_to_s}\n".blue
                 is_key = true
                 for each in self.children
                     if is_key
@@ -50,34 +67,55 @@ module Psych
                     end
                     is_key = ! is_key
                     
-                    if each.respond_to?(:to_s)
-                        output += indent(indent(each.to_s))+"\n"
-                    else
-                        output += indent(indent(each.inspect))+"\n"
-                    end
+                    output += indent(indent(each.inspect))+"\n"
                 end
                 return output
+            end
+            
+            def [](key)
+                is_value = true
+                index = -1
+                for each in self.children.reverse
+                    index += 1
+                    if not is_value
+                        if each == key || (each.respond_to?(:value) && each.value == key)
+                            # return the value of the key (which is the prev value)
+                            return self.children[index-1]
+                        end
+                    end
+                    is_value = ! is_value
+                end
+                return nil
             end
         end
         
         class Sequence
-            def to_s
-                output = "[Sequence]".green() +" anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, implicit: #{self.implicit.inspect}, style: #{self.style.inspect}\n".blue
+            include Common
+            def inspect
+                output = "[Sequence]".green() +" anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, implicit: #{self.implicit.inspect}, style: #{self.style_to_s}\n".blue
                 for each in self.children
-                    if each.respond_to?(:to_s)
-                        output += indent(each.to_s)+"\n"
-                    else
-                        output += indent(each.inspect)+"\n"
-                    end
+                    output += indent(each.inspect)+"\n"
                 end
                 return output
+            end
+            
+            def [](key)
+                return self.children[key]
             end
         end
         
         class Scalar
-            def to_s
-                output = "[Scalar]".green() +" anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, plain:#{self.plain.inspect}, style: #{self.style.inspect}, quoted: #{self.quoted.inspect}\n".blue
+            include Common
+            def inspect
+                output = "[Scalar]".green() +" anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, plain:#{self.plain.inspect}, style: #{self.style_to_s}, quoted: #{self.quoted.inspect}\n".blue
                 output += indent("value: #{self.value.inspect.yellow}")
+            end
+        end
+        
+        class Alias
+            def inspect
+                output = "[Alias]\n".green()
+                output += indent("anchor: #{self.anchor.inspect.yellow}")
             end
         end
     end
@@ -92,6 +130,7 @@ list1:
     - 2
     - 3
     - *ref
+# hello
 list2: [1,2,3]
 HEREDOC
 
@@ -99,13 +138,11 @@ Scalar   = Psych::Nodes::Scalar
 Sequence = Psych::Nodes::Sequence
 
 
-actual_data = doc.children[0]
+p doc.content["list1"]
 # actual_data.children[1]
 # seq.children    << scalar
 # seq    = Psych::Nodes::Sequence.new
-scalar = Psych::Nodes::Scalar.new('foo')
+scalar = Scalar.new('foo')
 
 
-puts doc.to_yaml
-
-puts doc
+# puts doc.to_yaml
