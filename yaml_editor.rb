@@ -86,14 +86,17 @@ end
 
 require 'yaml'
 doc = YAML.parse(<<-HEREDOC)
+thing1: &ref hi
 list1:
     - 1
     - 2
     - 3
+    - *ref
 list2: [1,2,3]
 HEREDOC
 
-Scalar = Psych::Nodes::Scalar
+Scalar   = Psych::Nodes::Scalar
+Sequence = Psych::Nodes::Sequence
 
 
 actual_data = doc.children[0]
@@ -105,4 +108,4 @@ scalar = Psych::Nodes::Scalar.new('foo')
 
 puts doc.to_yaml
 
-# puts a 
+puts doc
