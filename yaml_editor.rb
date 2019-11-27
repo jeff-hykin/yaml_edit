@@ -31,11 +31,16 @@ module Psych
                 end
                 return output
             end
+            def to_yaml
+                new_stream = Psych::Nodes::Stream.new
+                new_stream.children << self
+                return new_stream.to_yaml
+            end
         end
         
         class Mapping
             def to_s
-                output = "[Mapping]".green() + " anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, implicit:#{self.implicit.inspect}, style: #{self.style.inspect}\n".blue
+                output = "[Mapping]".green() + " anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, implicit: #{self.implicit.inspect}, style: #{self.style.inspect}\n".blue
                 is_key = true
                 for each in self.children
                     if is_key
@@ -57,7 +62,7 @@ module Psych
         
         class Sequence
             def to_s
-                output = "[Sequence]".green() +" anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, implicit:#{self.implicit.inspect}, style: #{self.style.inspect}\n".blue
+                output = "[Sequence]".green() +" anchor: #{self.anchor.inspect}, tag: #{self.tag.inspect}, implicit: #{self.implicit.inspect}, style: #{self.style.inspect}\n".blue
                 for each in self.children
                     if each.respond_to?(:to_s)
                         output += indent(each.to_s)+"\n"
@@ -80,7 +85,7 @@ end
 
 
 require 'yaml'
-a = YAML.parse(<<-HEREDOC)
+doc = YAML.parse(<<-HEREDOC)
 list1:
     - 1
     - 2
@@ -88,5 +93,16 @@ list1:
 list2: [1,2,3]
 HEREDOC
 
+Scalar = Psych::Nodes::Scalar
 
-puts a 
+
+actual_data = doc.children[0]
+# actual_data.children[1]
+# seq.children    << scalar
+# seq    = Psych::Nodes::Sequence.new
+scalar = Psych::Nodes::Scalar.new('foo')
+
+
+puts doc.to_yaml
+
+# puts a 
