@@ -15,6 +15,20 @@
     dependencies: &dependencies
         atk: 0.0.1
     
+    todo:
+        - create the "source" string that gets attached to the document
+        - create a wrapper for document that auto-sets the source string
+        - create a method on document that recursively adds a document link to all children
+        - create methods on the children that attach the document to any new elements
+        - create methods on the children that extract their exact string from the document.source
+        - create methods that change the document.source to match their new value
+            - map
+                - have them support whether or not they're a FLOW value
+            - sequence
+                - have them support whether or not they're a FLOW value
+            - scalar
+                - have them support all the different styles
+    
     (advanced_setup):
         (put_new_dependencies_under): [ '(project)', 'basic_info', 'dependencies' ]
         # caveats for a specific OS
